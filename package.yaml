@@ -1,0 +1,66 @@
+name:                json-persistent-filter
+version:             0.1.0.0
+github:              "beezee/json-persistent-filter"
+license:             BSD3
+author:              "Brian Zeligson"
+maintainer:          "me@brianzeligson.com"
+copyright:           "2021 Brian Zeligson"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/beezee/json-persistent-filter#readme>
+
+dependencies:
+- aeson
+- base >= 4.7 && < 5
+- base64-bytestring >= 1.1.0.0
+- bytestring >= 0.10.12.0
+- persistent
+- scientific >= 0.3.7.0
+- text >= 1.2.4.1
+- unordered-containers >= 0.2.16.0
+- vector >= 0.12.3.1
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Werror
+  - -Wredundant-constraints
+  - -fwarn-incomplete-patterns
+  - -fwarn-incomplete-record-updates
+  - -fwarn-incomplete-uni-patterns
+  - -fwarn-name-shadowing
+
+library:
+  source-dirs: src
+
+executables:
+  json-persistent-filter-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - json-persistent-filter
+
+tests:
+  json-persistent-filter-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - json-persistent-filter

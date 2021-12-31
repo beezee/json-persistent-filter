@@ -108,7 +108,7 @@ invalidFilterArr msg v = fail $ msg <> (LBS8.unpack . encode $ v)
 
 data ParsedEntityField a where
   ParsedEntityField 
-    :: (PersistField typ, FromJSON typ) 
+    :: (PersistField typ, FromJSON (SerializeFilter typ))
     => EntityField a typ -> ParsedEntityField a
 
 class PersistEntity a => ParseEntityField a where
@@ -129,6 +129,12 @@ instance Eq (SerializeFilter PersistFilter) where
   (SerializeFilter In) == (SerializeFilter In) = True
   (SerializeFilter NotIn) == (SerializeFilter NotIn) = True
   _ == _ = False
+
+instance {-# OVERLAPPABLE #-} FromJSON a => FromJSON (SerializeFilter a) where
+  parseJSON = (SerializeFilter <$>) . parseJSON
+
+instance FromJSON (SerializeFilter ByteString) where
+  parseJSON = (SerializeFilter . TE.encodeUtf8 <$>) . parseJSON
 
 instance FromJSON (SerializeFilter PersistFilter) where
   parseJSON (String s) = SerializeFilter <$> case s of
@@ -160,8 +166,10 @@ instance (PersistEntity a, ParseEntityField a) => FromJSON (SerializeFilter (Fil
               [(cmp, val)] -> do 
                 cmpp <- parseJSON . String $ cmp
                 pv <- if filtersArray cmpp
-                  then FilterValues <$> parseJSON val <?> (Key (key <> "." <> cmp))
-                  else FilterValue <$> parseJSON val <?> (Key (key <> "." <> cmp))
+                  then FilterValues . (unSerializedFilter <$>)
+                    <$> parseJSON val <?> (Key (key <> "." <> cmp))
+                  else FilterValue . unSerializedFilter 
+                    <$> parseJSON val <?> (Key (key <> "." <> cmp))
                 return . SerializeFilter $ Filter f pv (unSerializedFilter cmpp)
               _ -> (invalidFilterArr 
                 "Invalid filter object serialization format - " $ (Object ov))

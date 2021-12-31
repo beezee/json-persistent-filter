@@ -64,3 +64,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - json-persistent-filter
+    - time >= 1.9.3
+    - containers >= 0.6.5.1
+    - generic-random >= 1.4.0.0
+    - QuickCheck >= 2.14.2
+    - quickcheck-instances >= 0.3.25.2

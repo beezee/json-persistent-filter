@@ -183,7 +183,8 @@ instance FromJSON (SerializeFilter PersistFilter) where
     _ -> fail . T.unpack $ "Unrecognized persist filter - " <> s
   parseJSON _ = fail "Not a persist filter"
 
-instance (PersistEntity a, ParseEntityField a) => FromJSON (SerializeFilter (Filter a)) where
+instance (PersistEntity a, ParseEntityField a)
+  => FromJSON (SerializeFilter (Filter a)) where
   parseJSON (Array vs) = V.toList <$> traverse parseJSON vs >>= \case 
     (h:[]) -> return h
     _ -> invalidFilterArr "Cannot parse non-singleton-array value as filter - " $ Array vs

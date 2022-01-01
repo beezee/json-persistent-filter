@@ -81,25 +81,23 @@ instance A.ToJSON (SerializeFilter PersistValue) where
        sigDigits n' = truncate (logBase (16 :: Double) $ fromIntegral n') + 1
 
 instance PersistEntity a => ToJSON (SerializeFilter (Filter a)) where
-  toJSON (SerializeFilter (Filter field (FilterValue val) cmp)) = array [
+  toJSON (SerializeFilter (Filter field (FilterValue val) cmp)) = 
     object [
       (unFieldNameHS . fieldHaskell . persistFieldDef $ field) .= 
-        object [(T.pack . op $ cmp) .= (SerializeFilter . toPersistValue $ val)]]]
-  toJSON (SerializeFilter (Filter field (FilterValues vals) cmp)) = array [
+        object [(T.pack . op $ cmp) .= (SerializeFilter . toPersistValue $ val)]]
+  toJSON (SerializeFilter (Filter field (FilterValues vals) cmp)) = 
     object [(unFieldNameHS . fieldHaskell . persistFieldDef $ field) .= 
       object [(T.pack . op $ cmp) .=
-        (array $ (toJSON . SerializeFilter . toPersistValue) <$> vals)]]]
+        (array $ (toJSON . SerializeFilter . toPersistValue) <$> vals)]]
   toJSON (SerializeFilter (Filter field (UnsafeValue _) _)) = object [
     (unFieldNameHS . fieldHaskell . persistFieldDef $ field) .= 
       (toJSON @String "Cannot serialize UnsafeValue")]
-  toJSON (SerializeFilter (FilterAnd fs)) = array [
-    object [ "AND" .=
-      foldl (\a e -> mergeArrays a (toJSON . SerializeFilter $ e)) (array []) fs]]
-  toJSON (SerializeFilter (FilterOr fs)) = array [
-    object [ "OR" .=
-      foldl (\a e -> mergeArrays a (toJSON . SerializeFilter $ e)) (array []) fs]]
-  toJSON (SerializeFilter (BackendFilter _)) = array [
-    object [ "Unknown" .= (toJSON @String "Cannot serialize BackendFilter")]]
+  toJSON (SerializeFilter (FilterAnd fs)) = 
+    object [ "AND" .= (array . (toJSON . SerializeFilter <$>) $ fs) ]
+  toJSON (SerializeFilter (FilterOr fs)) = 
+    object [ "OR" .= (array . (toJSON . SerializeFilter <$>) $ fs) ]
+  toJSON (SerializeFilter (BackendFilter _)) = 
+    object [ "Unknown" .= (toJSON @String "Cannot serialize BackendFilter")]
 
 invalidFilterArr :: String -> Value -> Parser (SerializeFilter (Filter a))
 invalidFilterArr msg v = fail $ msg <> (LBS8.unpack . encode $ v)
@@ -185,9 +183,6 @@ instance FromJSON (SerializeFilter PersistFilter) where
 
 instance (PersistEntity a, ParseEntityField a)
   => FromJSON (SerializeFilter (Filter a)) where
-  parseJSON (Array vs) = V.toList <$> traverse parseJSON vs >>= \case 
-    (h:[]) -> return h
-    _ -> invalidFilterArr "Cannot parse non-singleton-array value as filter - " $ Array vs
   parseJSON (Object v) = case HM.toList v of
     [("AND", vs)] -> SerializeFilter . FilterAnd 
       . (unSerializedFilter <$>) <$> parseJSON vs
@@ -226,4 +221,4 @@ instance (PersistEntity a, ParseEntityField a)
         NEL.toList 
           $ (id &&& unFieldNameHS . fieldHaskell) 
           <$> (keyAndEntityFields $ entityDef (Proxy @a))
-  parseJSON v = invalidFilterArr "Cannot parse non-singleton-array value as filter - " v
+  parseJSON v = invalidFilterArr "Invalid filter value - " v

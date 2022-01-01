@@ -27,7 +27,6 @@ import Data.Fixed
 import Data.Functor.Const
 import Data.Int
 import qualified Data.Map as M
-import Data.List (partition)
 import Data.Maybe
 import Data.Proxy
 import qualified Data.Text as T
@@ -152,33 +151,32 @@ instance Arbitrary PersistValue where
       PersistArray <$> arbitrary]
 
 instance Arbitrary (SerializeFilter (Filter KitchenSink)) where
-  arbitrary = do
-    topAndOr <- arbitrary @Bool
-    sink <- arbitrary @(Entity KitchenSink)
-    sinks <- resize 5 $ listOf $ arbitrary @(Entity KitchenSink)
-    fields <- sublistOf . catMaybes . (parseEntityField @KitchenSink <$>) 
-      . getEntityFields . entityDef $ Proxy @KitchenSink
-    fieldOps <- (partition (\(_, _, t) -> t)) <$> (traverse 
-      (\f -> ((,,) f) 
-        <$> (unarb <$> arbitrary @(Arb PersistFilter))
-        <*> arbitrary @Bool)
-      fields)
-    let ors = FilterOr $ mkFilter sink sinks <$> fst fieldOps
-    let ands = FilterAnd $ mkFilter sink sinks <$> snd fieldOps
-    return . SerializeFilter 
-      $ if topAndOr then FilterAnd [ors, ands] else FilterOr [ors, ands]
+  arbitrary = resize 5 $ sized fltr
     where
+    fltr 0 = leaf
+    fltr n = oneof [andFltr n, andFltr n, orFltr n, orFltr n, leaf]
+    andFltr n = SerializeFilter . FilterAnd 
+      . (unSerializedFilter <$>) <$> (resize 5 $ listOf . fltr $ n - 1)
+    orFltr n = SerializeFilter . FilterOr 
+      . (unSerializedFilter <$>) <$> (resize 5 $ listOf . fltr $ n - 1)
+    leaf = do
+      sink <- arbitrary @(Entity KitchenSink)
+      sinks <- resize 5 $ listOf $ arbitrary @(Entity KitchenSink)
+      field <- elements . catMaybes . (parseEntityField @KitchenSink <$>) 
+        . getEntityFields . entityDef $ Proxy @KitchenSink
+      o <- (unarb <$> arbitrary @(Arb PersistFilter))
+      return . SerializeFilter $ mkFilter sink sinks (field, o)
     mkFilterVal :: Entity KitchenSink -> [Entity KitchenSink]
                 -> EntityField KitchenSink typ
                 -> PersistFilter -> FilterValue typ
-    -- TODO - fix type of filtersArray, dont do dumb crap for the type inference
+      -- TODO - fix type of filtersArray, dont do dumb crap for the type inference
     mkFilterVal sink sinks field o = case filtersArray . SerializeFilter $ o of
       True -> FilterValues . (getConst . fieldLens field Const <$>) $ sink:sinks
       False -> FilterValue . getConst . fieldLens field Const $ sink
     mkFilter :: Entity KitchenSink -> [Entity KitchenSink] 
-             -> (ParsedEntityField KitchenSink, PersistFilter, Bool)
+             -> (ParsedEntityField KitchenSink, PersistFilter)
              -> Filter KitchenSink
-    mkFilter sink sinks (ParsedEntityField field, o, _) =
+    mkFilter sink sinks (ParsedEntityField field, o) =
       (Filter field (mkFilterVal sink sinks field o) o)
 
 instance Show (SerializeFilter (Filter KitchenSink)) where

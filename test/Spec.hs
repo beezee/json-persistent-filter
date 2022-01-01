@@ -198,5 +198,4 @@ prop_jsonIsIso fltr = monadicIO $ do
 main :: IO ()
 main = 
   let _ = kitchenSinkChecksAllFieldTypes
-  in
-    quickCheck prop_jsonIsIso
+  in quickCheck prop_jsonIsIso

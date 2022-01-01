@@ -227,4 +227,3 @@ instance (PersistEntity a, ParseEntityField a)
           $ (id &&& unFieldNameHS . fieldHaskell) 
           <$> (keyAndEntityFields $ entityDef (Proxy @a))
   parseJSON v = invalidFilterArr "Cannot parse non-singleton-array value as filter - " v
-

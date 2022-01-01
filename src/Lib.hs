@@ -19,6 +19,7 @@ import Data.Proxy
 import qualified Data.Scientific as S
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import Data.Time
 import Database.Persist
 import qualified Data.Vector as V
 import Numeric (showHex)
@@ -46,9 +47,6 @@ op In = "IN"
 op NotIn = "NOT IN"
 op _ = "Unserializable backend specific filter"
 
--- TODO - if you figure out how to parse back out,
--- preserve the prefixes alongside
--- the strings in the string based types so you can leverage (FromJSON PersistValue)
 instance A.ToJSON (SerializeFilter PersistValue) where
   toJSON (SerializeFilter (PersistText t)) = A.String $ t
   toJSON (SerializeFilter (PersistByteString b)) = A.String $ TE.decodeUtf8 $ B64.encode b
@@ -130,11 +128,47 @@ instance Eq (SerializeFilter PersistFilter) where
   (SerializeFilter NotIn) == (SerializeFilter NotIn) = True
   _ == _ = False
 
-instance {-# OVERLAPPABLE #-} FromJSON a => FromJSON (SerializeFilter a) where
-  parseJSON = (SerializeFilter <$>) . parseJSON
+instance FromJSON (SerializeFilter a) => FromJSON (SerializeFilter (Maybe a)) where
+  parseJSON Null = return . SerializeFilter $ Nothing
+  parseJSON x = SerializeFilter . Just . unSerializedFilter <$> parseJSON x
+
+parsePersistVal 
+  :: PersistField b => (a -> Value) -> (a -> a) -> a -> Parser (SerializeFilter b)
+parsePersistVal v m = 
+  (either (fail . T.unpack) (return . SerializeFilter) . fromPersistValue =<<) 
+    . parseJSON . v . m
+
+instance {-# OVERLAPPABLE #-} (PersistField a, FromJSON a) 
+  =>  FromJSON (SerializeFilter a) where
+    parseJSON = parsePersistVal id id
 
 instance FromJSON (SerializeFilter ByteString) where
-  parseJSON = (SerializeFilter . TE.encodeUtf8 <$>) . parseJSON
+  parseJSON (String s) = parsePersistVal String (T.cons 'b') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter T.Text) where
+  parseJSON (String s) = parsePersistVal String (T.cons 's') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter String) where
+  parseJSON (String s) = parsePersistVal String (T.cons 's') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter Rational) where
+  parseJSON (String s) = parsePersistVal String (T.cons 'r') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter Day) where
+  parseJSON (String s) = parsePersistVal String (T.cons 'd') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter TimeOfDay) where
+  parseJSON (String s) = parsePersistVal String (T.cons 't') s
+  parseJSON x = parsePersistVal id id x
+
+instance FromJSON (SerializeFilter UTCTime) where
+  parseJSON (String s) = parsePersistVal String (T.cons 'u') s
+  parseJSON x = parsePersistVal id id x
 
 instance FromJSON (SerializeFilter PersistFilter) where
   parseJSON (String s) = SerializeFilter <$> case s of

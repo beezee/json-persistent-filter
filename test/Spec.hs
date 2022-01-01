@@ -132,21 +132,24 @@ instance Arbitrary UTCTime where
   arbitrary = UTCTime <$> arbitrary <*> (secondsToDiffTime <$> choose (0, 86401))
 
 instance Arbitrary PersistValue where
-  arbitrary = oneof [
-    PersistText <$> arbitrary,
-    PersistByteString <$> arbitrary,
-    PersistDouble <$> arbitrary,
-    PersistRational <$> arbitrary,
-    PersistInt64 <$> arbitrary,
-    PersistBool <$> arbitrary,
-    PersistDay <$> arbitrary,
-    PersistTimeOfDay <$> arbitrary,
-    PersistUTCTime <$> arbitrary,
-    return PersistNull,
-    PersistList <$> arbitrary,
-    PersistMap <$> arbitrary,
-    PersistObjectId <$> arbitrary,
-    PersistArray <$> arbitrary]
+  arbitrary = resize 5 $ sized pv
+    where
+    pv 0 = PersistText <$> arbitrary
+    pv _ = oneof [
+      PersistText <$> arbitrary,
+      PersistByteString <$> arbitrary,
+      PersistDouble <$> arbitrary,
+      PersistRational <$> arbitrary,
+      PersistInt64 <$> arbitrary,
+      PersistBool <$> arbitrary,
+      PersistDay <$> arbitrary,
+      PersistTimeOfDay <$> arbitrary,
+      PersistUTCTime <$> arbitrary,
+      return PersistNull,
+      PersistList <$> arbitrary,
+      PersistMap <$> arbitrary,
+      PersistObjectId <$> arbitrary,
+      PersistArray <$> arbitrary]
 
 instance Arbitrary (SerializeFilter (Filter KitchenSink)) where
   arbitrary = do

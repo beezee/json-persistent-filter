@@ -24,9 +24,11 @@ dependencies:
 - base >= 4.7 && < 5
 - base64-bytestring >= 1.1.0.0
 - bytestring >= 0.10.12.0
+- containers >= 0.6.5.1
 - persistent
 - scientific >= 0.3.7.0
 - text >= 1.2.4.1
+- time >= 1.9.3
 - unordered-containers >= 0.2.16.0
 - vector >= 0.12.3.1
 
@@ -64,8 +66,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - json-persistent-filter
-    - time >= 1.9.3
-    - containers >= 0.6.5.1
     - generic-random >= 1.4.0.0
     - QuickCheck >= 2.14.2
     - quickcheck-instances >= 0.3.25.2

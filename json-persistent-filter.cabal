@@ -36,9 +36,11 @@ library
     , base >=4.7 && <5
     , base64-bytestring >=1.1.0.0
     , bytestring >=0.10.12.0
+    , containers >=0.6.5.1
     , persistent
     , scientific >=0.3.7.0
     , text >=1.2.4.1
+    , time >=1.9.3
     , unordered-containers >=0.2.16.0
     , vector >=0.12.3.1
   default-language: Haskell2010
@@ -55,10 +57,12 @@ executable json-persistent-filter-exe
     , base >=4.7 && <5
     , base64-bytestring >=1.1.0.0
     , bytestring >=0.10.12.0
+    , containers >=0.6.5.1
     , json-persistent-filter
     , persistent
     , scientific >=0.3.7.0
     , text >=1.2.4.1
+    , time >=1.9.3
     , unordered-containers >=0.2.16.0
     , vector >=0.12.3.1
   default-language: Haskell2010
